@@ -1,0 +1,10 @@
+KLINE_TO_USE_IN_PROD = 5 # Largo de vela (en minutos) que planeamos usar en el escenario real (produccion)
+KLINE_INTERVAL = 1 # Largo de vela que vamos a iterar en el backtesting. Puede combinarse con la constante KLINE_TO_USE_IN_PROD para poder ver la evolucion por minuto, de velas de 5 minutos, en un ambito de backtesting
+DEFAULT_CCI_LONGITUDE=20 # Cantidad de velas a ser tenidas en cuenta por el CCI por default
+PAIR = "ROSEUSDT" # Pair de activos a operar
+TRADE_AMOUNT = 100 # Importe a alocar en cada trade (repartido entre las posiciones que se abran)
+STOP_LOSS = 1 # Distancia que tiene que recorrer el precio en contra nuestro para completar la posicion e ir a perdida
+TAKER_PROFIT = 1.5 # Distancia que tiene que recorrer el precio a favor nuestro para completar la posicion y tomar las ganancias
+POSITIONS_STRUCTURE = [{'weight': .15}, {'weight': .25}, {'weight': .25}, {'weight': .35}] # Posiciones a abrir por cada señal de trade con sus respectivos "weights" que representan un porcentaje del importe a tradear
+CCI_LONGITUDE = int((KLINE_TO_USE_IN_PROD / KLINE_INTERVAL) * DEFAULT_CCI_LONGITUDE) # Cantidad de velas a ser tenidas en cuenta por el CCI segun las velas que estemos usando en backtesting y que planeemos usar en prod.
+CCI_PEAK = 200 # Valor en el que se activa la señal del CCI
