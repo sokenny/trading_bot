@@ -1,4 +1,3 @@
-import utils
 import math
 import os
 import config
@@ -9,12 +8,13 @@ THIS_PATH = os.path.abspath(os.path.dirname(__file__))
 Ant = Bot("sandbox", config.PAIR, config.TRADE_AMOUNT, config.TAKER_PROFIT, config.STOP_LOSS, config.POSITIONS_STRUCTURE, config.KLINE_TO_USE_IN_PROD, config.KLINE_INTERVAL, config.CCI_PEAK)
 
 candles = Ant.get_candle_sticks(config.PAIR, config.KLINE_INTERVAL, "1 day ago UTC")
-# path = os.path.join(THIS_PATH, 'ROSEUSDT_1D_1M.txt')
+# path = os.path.join(THIS_PATH, '/candles/ROSEUSDT_1D_1M.txt')
 # candles = utils.txt_to_json(path)
 
 dfc = Ant.get_parsed_df_w_cci(candles)
 
 for index, candle in dfc.iterrows():
+    print('candle')
     canProceed = not math.isnan(candle['CCI'])
     if(canProceed):
         CCI = candle['CCI']
@@ -57,4 +57,5 @@ print(Ant.closed_positions)
 print('Won: ', won, ' - Won weights: ', won_weights)
 print('Lost: ', lost, ' - Lost weights: ', lost_weights)
 
-
+# for index, candle in dfc.iterrows():
+#     print(candle)

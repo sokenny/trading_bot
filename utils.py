@@ -1,15 +1,17 @@
 import json
+
+import config
 import keys
 import pandas as pd
 from binance.client import Client
 import ta
 import uuid
 import time
+import config
 
 client = Client(api_key=keys.Akey, api_secret=keys.Skey)
 
 KLINE_STRUCTURE = ['open-time', 'open', 'high', 'low', 'close', 'volume', 'close-time', 'quote-asset-volume', 'number-of-trades', 'tbba-volume', 'tbqa-volume', 'ignore']
-DEFAULT_CCI_LONGITUDE=20 # Cantidad de velas a ser tenidas en cuenta por el CCI por default
 
 class Position:
     def __init__(self, status, start_price, end_price, stop_loss, amount, type, weight, create_time, trade_id):
@@ -43,7 +45,7 @@ class Bot:
         self.kline_to_use_in_prod = kline_to_use_in_prod
         self.kline_interval = kline_interval
         self.cci_peak = cci_peak
-        self.default_cci_longitude = DEFAULT_CCI_LONGITUDE
+        self.default_cci_longitude = config.DEFAULT_CCI_LONGITUDE
         self.cci_longitude = int((self.kline_to_use_in_prod / self.kline_interval) * self.default_cci_longitude)
 
         self.status = "analysing"
@@ -53,7 +55,7 @@ class Bot:
         self.closed_positions = []
         self.cci_signal = {'value':None, 'id':None}
 
-    def get_candle_sticks(self, pair, KLINE_INTERVAL=5, PERIOD="15 days ago UTC"):
+    def get_candle_sticks(self, pair, KLINE_INTERVAL, PERIOD):
         INTERVALS = {1: Client.KLINE_INTERVAL_1MINUTE, 5: Client.KLINE_INTERVAL_5MINUTE}
         candles = client.get_historical_klines(pair, INTERVALS[KLINE_INTERVAL], PERIOD)
         return candles
@@ -67,9 +69,9 @@ class Bot:
 
     def get_parsed_df_w_cci(self, candles):
         candlesDF = self.get_parsed_df(candles)
-        CCI = ta.trend.CCIIndicator(candlesDF['high'], candlesDF['low'], candlesDF['close'], self.cci_longitude)
+        CCI_df = ta.trend.CCIIndicator(candlesDF['high'], candlesDF['low'], candlesDF['close'], self.cci_longitude)
         candlesDFWCCI = candlesDF
-        candlesDFWCCI['CCI'] = CCI.cci()
+        candlesDFWCCI['CCI'] = CCI_df.cci()
         return candlesDFWCCI
 
     def get_cci_df(self, high, low, close):
