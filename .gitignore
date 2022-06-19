@@ -1,4 +1,5 @@
 venv
 keys.py
-
+__pycache__/
+*.py[cod]
 candles

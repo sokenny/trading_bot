@@ -1,6 +1,4 @@
 import json
-
-import config
 import keys
 import pandas as pd
 from binance.client import Client
@@ -32,10 +30,10 @@ class Position:
         self.exit_price = None
 
     def get(self):
-        return {'status': self.status, 'start_price': self.start_price, 'end_price': self.end_price, 'stop_loss': self.stop_loss, 'amount': self.amount, 'type': self.type, 'open_price': self.open_price, 'exit_price': self.exit_price, 'weight': self.weight, 'open_time': self.open_time, 'close_time': self.close_time, 'outcome': self.outcome, 'trade_id': self.trade_id}
+        return {'status': self.status, 'start_price': self.start_price, 'end_price': self.end_price, 'stop_loss': self.stop_loss, 'amount': self.amount, 'type': self.type, 'open_price': self.open_price, 'exit_price': self.exit_price, 'weight': self.weight, 'create_time': self.create_time,  'open_time': self.open_time, 'close_time': self.close_time, 'outcome': self.outcome, 'trade_id': self.trade_id}
 
 class Bot:
-    def __init__(self, mode, pair, trade_amount, taker_profit, stop_loss, positions_structure, kline_to_use_in_prod, kline_interval, cci_peak):
+    def __init__(self, mode, pair, trade_amount, taker_profit, stop_loss, positions_structure, kline_to_use_in_prod, kline_interval, cci_peak, position_expiry_time):
         self.mode = mode
         self.pair = pair
         self.trade_amount = trade_amount
@@ -47,6 +45,7 @@ class Bot:
         self.cci_peak = cci_peak
         self.default_cci_longitude = config.DEFAULT_CCI_LONGITUDE
         self.cci_longitude = int((self.kline_to_use_in_prod / self.kline_interval) * self.default_cci_longitude)
+        self.position_expiry_time = position_expiry_time
 
         self.status = "analysing"
         self.last_cci = None
@@ -83,15 +82,19 @@ class Bot:
         return CCI
 
     def reached_peak(self, CCI):
+        if(CCI == None):
+            return False
         return abs(CCI) > self.cci_peak
 
     def reached_new_peak(self, CCI):
         return self.reached_peak(CCI) and not self.reached_peak(self.last_cci)
 
     def get_position_type(self, CCI):
-        return "short" if CCI > 0 else "long"
+        return "short" if CCI > 0 else "long" # REAL
+        # return "long" if CCI > 0 else "short"
 
     def started_regression(self, CCI):
+        print('def started_regression. CCI: ', CCI, ' - self.last_cci: ', self.last_cci, ' - val: ', CCI > self.last_cci if self.last_cci < 0 else CCI < self.last_cci)
         return CCI > self.last_cci if self.last_cci < 0 else CCI < self.last_cci
 
     def get_price_variation(self, this_price, price_when_trade_opened):
@@ -127,12 +130,24 @@ class Bot:
 
     def try_open_position(self, pending_position_index, candle):
         position = self.pending_positions[pending_position_index]
-        can_open_position = candle['close'] <= position.start_price if position.type == "long" else candle['close'] >= position.start_price
-        if(can_open_position):
-            position.open_time = candle['close-time']
-            position.status = "open"
-            position.open_price = candle['close']
-            self.open_position(pending_position_index)
+        position_expired = self.try_expire_position(pending_position_index, candle)
+        if(not position_expired):
+            can_open_position = candle['close'] <= position.start_price if position.type == "long" else candle['close'] >= position.start_price
+            if(can_open_position):
+                position.open_time = candle['close-time']
+                position.status = "open"
+                position.open_price = candle['close']
+                self.open_position(pending_position_index)
+                return True
+            return False
+        return False
+
+    def try_expire_position(self, pending_position_index, candle):
+        position = self.pending_positions[pending_position_index]
+        pending_lifetime = (candle['close-time'] - position.create_time) / 1000
+        if(pending_lifetime > self.position_expiry_time):
+            print('Position expired! ', pending_lifetime)
+            del self.pending_positions[pending_position_index]
             return True
         return False
 
@@ -158,6 +173,18 @@ class Bot:
         print('Closed position: ', self.open_positions[position_index].get())
         self.closed_positions.append(self.open_positions[position_index].get())
         del self.open_positions[position_index]
+
+    def get_score(self, last_positions="all"):
+        score = 0
+        for position in self.closed_positions[0 if last_positions == "all" else -last_positions:]:
+            if(position['outcome'] == 0):
+                score -= position['weight'] * self.stop_loss
+            else:
+                score += position['weight'] * self.taker_profit
+        return score
+
+
+
 
 
 def txt_to_json(path):
