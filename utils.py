@@ -34,7 +34,7 @@ class Position:
         return {'status': self.status, 'start_price': self.start_price, 'end_price': self.end_price, 'stop_loss': self.stop_loss, 'amount': self.amount, 'type': self.type, 'open_price': self.open_price, 'exit_price': self.exit_price, 'weight': self.weight, 'create_time': self.create_time,  'open_time': self.open_time, 'close_time': self.close_time, 'outcome': self.outcome, 'layer': self.layer, 'id': self.id}
 
 class Bot:
-    def __init__(self, mode, pair, trade_amount, taker_profit, stop_loss, positions_structure, kline_to_use_in_prod, kline_interval, cci_peak, position_expiry_time, score_filter):
+    def __init__(self, mode, pair, trade_amount, taker_profit, stop_loss, positions_structure, kline_to_use_in_prod, kline_interval, cci_peak, position_expiry_time, score_filter, start_gap_percentage):
         self.mode = mode
         self.pair = pair
         self.trade_amount = trade_amount
@@ -48,6 +48,7 @@ class Bot:
         self.cci_longitude = int((self.kline_to_use_in_prod / self.kline_interval) * self.default_cci_longitude)
         self.position_expiry_time = position_expiry_time
         self.score_filter = score_filter
+        self.start_gap_percentage = start_gap_percentage
 
         self.status = "analysing"
         self.last_cci = None
@@ -57,7 +58,7 @@ class Bot:
         self.cci_signal = {'value':None, 'id':None}
 
     def get_candle_sticks(self, pair, KLINE_INTERVAL, PERIOD):
-        INTERVALS = {1: Client.KLINE_INTERVAL_1MINUTE, 5: Client.KLINE_INTERVAL_5MINUTE}
+        INTERVALS = {1: Client.KLINE_INTERVAL_1MINUTE, 5: Client.KLINE_INTERVAL_5MINUTE, 15: Client.KLINE_INTERVAL_15MINUTE}
         candles = client.get_historical_klines(pair, INTERVALS[KLINE_INTERVAL], PERIOD)
         return candles
 
@@ -95,6 +96,9 @@ class Bot:
         return "short" if CCI > 0 else "long" # REAL
         # return "long" if CCI > 0 else "short"
 
+    def get_layer(self):
+        return 2 if self.get_score(last_positions=10) > self.score_filter else 1
+
     def started_regression(self, CCI):
         print('def started_regression. CCI: ', CCI, ' - self.last_cci: ', self.last_cci, ' - val: ', CCI > self.last_cci if self.last_cci < 0 else CCI < self.last_cci)
         return CCI > self.last_cci if self.last_cci < 0 else CCI < self.last_cci
@@ -110,14 +114,16 @@ class Bot:
 
     def get_positions_to_create(self, price, create_time, CCI):
         price_position_multiplier = (self.taker_profit / len(self.positions_structure)) / 100
+        print('price pos mul: ', price_position_multiplier)
         positions_to_create = []
         operator = self.get_operator(CCI)
         position_type = self.get_position_type(CCI)
-        layer = 2 if self.get_score(10) > 0 else 1
+        layer = self.get_layer()
         print("CCI: ", CCI, " - opp: ", operator, ' - pos type: ', position_type)
         for i, p in enumerate(self.positions_structure):
             amount = self.trade_amount * p['weight']
-            start_price = price + (((price * price_position_multiplier) * (i + 1))) * operator
+            start_price = price + (((price * price_position_multiplier) * (i + 1)) + ((self.start_gap_percentage / 100) * price)) * operator
+            # start_price = price + (((price * price_position_multiplier) * (i + 1))) * operator
             end_price = start_price + ((start_price * (self.taker_profit / 100))) * -operator
             stop_loss = start_price + ((start_price * (self.stop_loss / 100))) * operator
             positions_to_create.append(Position("pending", start_price, end_price, stop_loss, amount, position_type, p['weight'], create_time,  layer))
