@@ -5,7 +5,7 @@ from utils import Bot
 
 THIS_PATH = os.path.abspath(os.path.dirname(__file__))
 
-Ant = Bot("sandbox", config.PAIR, config.TRADE_AMOUNT, config.TAKER_PROFIT, config.STOP_LOSS, config.POSITIONS_STRUCTURE, config.KLINE_TO_USE_IN_PROD, config.KLINE_INTERVAL, config.CCI_PEAK, config.POSITION_EXPIRY_TIME)
+Ant = Bot("sandbox", config.PAIR, config.TRADE_AMOUNT, config.TAKER_PROFIT, config.STOP_LOSS, config.POSITIONS_STRUCTURE, config.KLINE_TO_USE_IN_PROD, config.KLINE_INTERVAL, config.CCI_PEAK, config.POSITION_EXPIRY_TIME, config.SCORE_FILTER)
 
 candles = Ant.get_candle_sticks(config.PAIR, config.KLINE_INTERVAL, config.PERIOD)
 
@@ -54,7 +54,7 @@ for pos in Ant.closed_positions:
 print(Ant.closed_positions)
 print('Won: ', won, ' - Won weights: ', won_weights)
 print('Lost: ', lost, ' - Lost weights: ', lost_weights)
+print("Positions left open: ", len(Ant.open_positions))
 print('score: ', Ant.get_score())
 
-# for index, candle in dfc.iterrows():
-#     print(candle)
+print("Layer 2 score: ", Ant.get_score(layer_filter=2))

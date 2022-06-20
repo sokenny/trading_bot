@@ -12,7 +12,7 @@ client = Client(api_key=keys.Akey, api_secret=keys.Skey)
 KLINE_STRUCTURE = ['open-time', 'open', 'high', 'low', 'close', 'volume', 'close-time', 'quote-asset-volume', 'number-of-trades', 'tbba-volume', 'tbqa-volume', 'ignore']
 
 class Position:
-    def __init__(self, status, start_price, end_price, stop_loss, amount, type, weight, create_time, trade_id):
+    def __init__(self, status, start_price, end_price, stop_loss, amount, type, weight, create_time, layer):
         self.status = status
         self.start_price = round(start_price, 5)
         self.end_price = round(end_price, 5)
@@ -21,8 +21,9 @@ class Position:
         self.type = type
         self.weight = weight
         self.create_time = create_time
-        self.trade_id = trade_id
+        self.layer = layer
 
+        self.id = str(uuid.uuid4())
         self.open_time = None
         self.close_time = None
         self.outcome = None
@@ -30,10 +31,10 @@ class Position:
         self.exit_price = None
 
     def get(self):
-        return {'status': self.status, 'start_price': self.start_price, 'end_price': self.end_price, 'stop_loss': self.stop_loss, 'amount': self.amount, 'type': self.type, 'open_price': self.open_price, 'exit_price': self.exit_price, 'weight': self.weight, 'create_time': self.create_time,  'open_time': self.open_time, 'close_time': self.close_time, 'outcome': self.outcome, 'trade_id': self.trade_id}
+        return {'status': self.status, 'start_price': self.start_price, 'end_price': self.end_price, 'stop_loss': self.stop_loss, 'amount': self.amount, 'type': self.type, 'open_price': self.open_price, 'exit_price': self.exit_price, 'weight': self.weight, 'create_time': self.create_time,  'open_time': self.open_time, 'close_time': self.close_time, 'outcome': self.outcome, 'layer': self.layer, 'id': self.id}
 
 class Bot:
-    def __init__(self, mode, pair, trade_amount, taker_profit, stop_loss, positions_structure, kline_to_use_in_prod, kline_interval, cci_peak, position_expiry_time):
+    def __init__(self, mode, pair, trade_amount, taker_profit, stop_loss, positions_structure, kline_to_use_in_prod, kline_interval, cci_peak, position_expiry_time, score_filter):
         self.mode = mode
         self.pair = pair
         self.trade_amount = trade_amount
@@ -46,6 +47,7 @@ class Bot:
         self.default_cci_longitude = config.DEFAULT_CCI_LONGITUDE
         self.cci_longitude = int((self.kline_to_use_in_prod / self.kline_interval) * self.default_cci_longitude)
         self.position_expiry_time = position_expiry_time
+        self.score_filter = score_filter
 
         self.status = "analysing"
         self.last_cci = None
@@ -111,13 +113,14 @@ class Bot:
         positions_to_create = []
         operator = self.get_operator(CCI)
         position_type = self.get_position_type(CCI)
+        layer = 2 if self.get_score(10) > 0 else 1
         print("CCI: ", CCI, " - opp: ", operator, ' - pos type: ', position_type)
         for i, p in enumerate(self.positions_structure):
             amount = self.trade_amount * p['weight']
             start_price = price + (((price * price_position_multiplier) * (i + 1))) * operator
             end_price = start_price + ((start_price * (self.taker_profit / 100))) * -operator
             stop_loss = start_price + ((start_price * (self.stop_loss / 100))) * operator
-            positions_to_create.append(Position("pending", start_price, end_price, stop_loss, amount, position_type, p['weight'], create_time,  str(uuid.uuid4())))
+            positions_to_create.append(Position("pending", start_price, end_price, stop_loss, amount, position_type, p['weight'], create_time,  layer))
         return positions_to_create
 
     def create_positions(self, price, candle_time, CCI):
@@ -146,7 +149,7 @@ class Bot:
         position = self.pending_positions[pending_position_index]
         pending_lifetime = (candle['close-time'] - position.create_time) / 1000
         if(pending_lifetime > self.position_expiry_time):
-            print('Position expired! ', pending_lifetime)
+            print('La siguiente posición expiró: ', self.pending_positions[pending_position_index].get())
             del self.pending_positions[pending_position_index]
             return True
         return False
@@ -174,18 +177,16 @@ class Bot:
         self.closed_positions.append(self.open_positions[position_index].get())
         del self.open_positions[position_index]
 
-    def get_score(self, last_positions="all"):
+    def get_score(self, last_positions="all", layer_filter=False):
         score = 0
         for position in self.closed_positions[0 if last_positions == "all" else -last_positions:]:
+            if layer_filter and position['layer'] != layer_filter:
+                continue
             if(position['outcome'] == 0):
                 score -= position['weight'] * self.stop_loss
             else:
                 score += position['weight'] * self.taker_profit
         return score
-
-
-
-
 
 def txt_to_json(path):
     txt = open(path, "r")
