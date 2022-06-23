@@ -10,8 +10,8 @@ class NeuralHTTP(BaseHTTPRequestHandler):
     def do_POST(self):
         content_length = int(self.headers['Content-Length']) # <--- Gets the size of data
         raw_post_data = self.rfile.read(content_length) # <--- Gets the data itself
-        print('RAW: ', raw_post_data)
         data = json.loads(raw_post_data)
+        print('putarraca: ', data['CCI_PEAK'])
         self.send_response(200)
         self.send_header("Content-type", "text/html")
         self.end_headers()

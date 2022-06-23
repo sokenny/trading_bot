@@ -6,12 +6,12 @@ from utils import Bot
 import sys
 import io
 
-old_stdout = sys.stdout # Memorize the default stdout stream
-sys.stdout = buffer = io.StringIO()
-
 THIS_PATH = os.path.abspath(os.path.dirname(__file__))
 
 def backtest(__PAIR=config.PAIR, __PERIOD=config.PERIOD, __TRADE_AMOUNT=config.TRADE_AMOUNT, __TAKER_PROFIT=config.TAKER_PROFIT, __STOP_LOSS=config.STOP_LOSS, __POSITIONS_STRUCTURE=config.POSITIONS_STRUCTURE, __KLINE_TO_USE_IN_PROD=config.KLINE_TO_USE_IN_PROD, __KLINE_INTERVAL=config.KLINE_INTERVAL, __CCI_PEAK=config.CCI_PEAK, __POSITION_EXPIRY_TIME=config.POSITION_EXPIRY_TIME, __SCORE_FILTER=config.SCORE_FILTER, __SCORE_LONGITUDE=config.SCORE_LONGITUDE, __START_GAP_PERCENTAGE=config.START_GAP_PERCENTAGE):
+
+    old_stdout = sys.stdout  # Memorize the default stdout stream
+    sys.stdout = buffer = io.StringIO()
 
     Ant = Bot("sandbox", __PAIR, __TRADE_AMOUNT, __TAKER_PROFIT, __STOP_LOSS,  __POSITIONS_STRUCTURE, __KLINE_TO_USE_IN_PROD, __KLINE_INTERVAL, __CCI_PEAK, __POSITION_EXPIRY_TIME, __SCORE_FILTER, __SCORE_LONGITUDE, __START_GAP_PERCENTAGE)
     candles = Ant.get_candle_sticks(config.PAIR, config.KLINE_INTERVAL, __PERIOD)
@@ -57,12 +57,15 @@ def backtest(__PAIR=config.PAIR, __PERIOD=config.PERIOD, __TRADE_AMOUNT=config.T
             lost += 1
             lost_weights += pos['weight']
 
+    print('\nCLOSED POSITIONS: ')
     print(Ant.closed_positions)
-    print('Won: ', won, ' - Won weights: ', won_weights)
+    print('\nWon: ', won, ' - Won weights: ', won_weights)
     print('Lost: ', lost, ' - Lost weights: ', lost_weights)
     print("Positions left open: ", len(Ant.open_positions))
     print('Layer 1 score: ', Ant.get_score())
     print("Layer 2 score: ", Ant.get_score(target_layer=2))
+    print("\n CONFIG USED: ")
+    print(Ant.get_config())
 
     sys.stdout = old_stdout  # Put the old stream back in place
     whole_print_output = buffer.getvalue()

@@ -190,6 +190,13 @@ class Bot:
                 score += position['weight'] * self.taker_profit
         return score
 
+    def get_config(self):
+        instantiation = vars(self)
+        del instantiation['pending_positions']
+        del instantiation['closed_positions']
+        del instantiation['open_positions']
+        return instantiation
+
 def txt_to_json(path):
     txt = open(path, "r")
     txt = txt.read()
