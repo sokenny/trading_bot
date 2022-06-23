@@ -131,6 +131,7 @@ class Bot:
         create_time = candle_time if self.mode == "sandbox" else actual_time
         positions_to_create = self.get_positions_to_create(price, create_time, CCI)
         for position in positions_to_create:
+            print('Created position: ', position.get())
             self.pending_positions.append(position)
 
     def try_open_position(self, pending_position_index, candle):

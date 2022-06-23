@@ -21,7 +21,7 @@ def backtest(__PAIR=config.PAIR, __PERIOD=config.PERIOD, __TRADE_AMOUNT=config.T
         canProceed = not math.isnan(candle['CCI'])
         if(canProceed):
             CCI = candle['CCI']
-            print(f'\nCCI: , {CCI} - time:  candle["close-time"] - bot status: ', Ant.status, ' - candle price: ', candle['close'], ' - layer 1 score: ', Ant.get_score(), ' - layer 2 score: ', Ant.get_score(target_layer=2))
+            print(f'\nCCI: , {CCI} - time:  {candle["close-time"]} - bot status: ', Ant.status, ' - candle price: ', candle['close'], ' - layer 1 score: ', Ant.get_score(), ' - layer 2 score: ', Ant.get_score(target_layer=2))
 
             for i, position in enumerate(Ant.pending_positions):
                 Ant.try_open_position(i, candle)

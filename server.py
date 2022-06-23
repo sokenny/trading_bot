@@ -1,9 +1,10 @@
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import json
 import main
+import keys
 
-HOST = "192.168.0.65"
-PORT = 9999
+HOST = keys.HOST
+PORT = keys.PORT
 
 class NeuralHTTP(BaseHTTPRequestHandler):
 
@@ -11,7 +12,6 @@ class NeuralHTTP(BaseHTTPRequestHandler):
         content_length = int(self.headers['Content-Length']) # <--- Gets the size of data
         raw_post_data = self.rfile.read(content_length) # <--- Gets the data itself
         data = json.loads(raw_post_data)
-        print('putarraca: ', data['CCI_PEAK'])
         self.send_response(200)
         self.send_header("Content-type", "text/html")
         self.end_headers()
