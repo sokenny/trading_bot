@@ -1,37 +1,15 @@
-import json
+import copy
 import keys
 import pandas as pd
 from binance.client import Client
 import ta
-import uuid
 import time
 import config
+from Position import Position
 
 client = Client(api_key=keys.Akey, api_secret=keys.Skey)
 
 KLINE_STRUCTURE = ['open-time', 'open', 'high', 'low', 'close', 'volume', 'close-time', 'quote-asset-volume', 'number-of-trades', 'tbba-volume', 'tbqa-volume', 'ignore']
-
-class Position:
-    def __init__(self, status, start_price, end_price, stop_loss, amount, type, weight, create_time, layer):
-        self.status = status
-        self.start_price = round(start_price, 5)
-        self.end_price = round(end_price, 5)
-        self.stop_loss = round(stop_loss, 5)
-        self.amount = amount
-        self.type = type
-        self.weight = weight
-        self.create_time = create_time
-        self.layer = layer
-
-        self.id = str(uuid.uuid4())
-        self.open_time = None
-        self.close_time = None
-        self.outcome = None
-        self.open_price = None
-        self.exit_price = None
-
-    def get(self):
-        return {'status': self.status, 'start_price': self.start_price, 'end_price': self.end_price, 'stop_loss': self.stop_loss, 'amount': self.amount, 'type': self.type, 'open_price': self.open_price, 'exit_price': self.exit_price, 'weight': self.weight, 'create_time': self.create_time,  'open_time': self.open_time, 'close_time': self.close_time, 'outcome': self.outcome, 'layer': self.layer, 'id': self.id}
 
 class Bot:
     def __init__(self, mode, pair, trade_amount, taker_profit, stop_loss, positions_structure, kline_to_use_in_prod, kline_interval, cci_peak, position_expiry_time, score_filter, score_longitude, start_gap_percentage):
@@ -56,7 +34,6 @@ class Bot:
         self.pending_positions = []
         self.open_positions = []
         self.closed_positions = []
-        self.cci_signal = {'value':None, 'id':None}
 
     def get_candle_sticks(self, pair, KLINE_INTERVAL, PERIOD):
         INTERVALS = {1: Client.KLINE_INTERVAL_1MINUTE, 5: Client.KLINE_INTERVAL_5MINUTE, 15: Client.KLINE_INTERVAL_15MINUTE}
@@ -192,18 +169,30 @@ class Bot:
         return score
 
     def get_config(self):
-        instantiation = vars(self)
+        instantiation = copy.deepcopy(vars(self))
         del instantiation['pending_positions']
         del instantiation['closed_positions']
         del instantiation['open_positions']
         return instantiation
 
-def txt_to_json(path):
-    txt = open(path, "r")
-    txt = txt.read()
-    txt = txt.replace("\'", "\"")
-    json_output = json.loads(txt)
-    return json_output
+    def get_footer_report(self, print_report=False):
+        footer_report = {"won": 0, "won_weights": 0, "lost": 0, "lost_weights": 0, "positions_left_open": len(self.open_positions), "layer_1_score": self.get_score(), "layer_2_score": self.get_score(target_layer=2), "config": self.get_config()}
+        for position in self.closed_positions:
+            if (position['outcome'] == 1):
+                footer_report["won"] += 1
+                footer_report["won_weights"] += position['weight']
+            else:
+                footer_report["lost"] += 1
+                footer_report["lost_weights"] += position['weight']
+        if(print_report):
+            print('\nWon: ', footer_report["won"], ' - Won weights: ', footer_report["won_weights"])
+            print('Lost: ', footer_report["lost"], ' - Lost weights: ', footer_report["lost_weights"])
+            print("Positions left open: ", footer_report["positions_left_open"])
+            print('Layer 1 score: ', footer_report["layer_1_score"])
+            print("Layer 2 score: ", footer_report["layer_2_score"])
+            print("\n CONFIG USED: ")
+            print(self.get_config())
+        return footer_report
 
 
 
