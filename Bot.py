@@ -71,8 +71,7 @@ class Bot:
         return self.reached_peak(CCI) and not self.reached_peak(self.last_cci)
 
     def get_position_type(self, CCI):
-        return "short" if CCI > 0 else "long" # REAL
-        # return "long" if CCI > 0 else "short"
+        return "short" if CCI > 0 else "long"
 
     def get_layer(self):
         return 2 if self.get_score(last_positions=self.score_longitude) > self.score_filter else 1
@@ -159,7 +158,11 @@ class Bot:
 
     def get_score(self, last_positions="all", target_layer=False):
         score = 0
-        for position in self.closed_positions[0 if last_positions == "all" else -last_positions:]:
+        if(isinstance(last_positions, list)):
+            positions_to_iterate = self.closed_positions[last_positions[0]:last_positions[1]]
+        else:
+            positions_to_iterate  = self.closed_positions[0 if last_positions == "all" else -last_positions:]
+        for position in positions_to_iterate:
             if target_layer and position['layer'] != target_layer:
                 continue
             if(position['outcome'] == 0):
@@ -167,6 +170,17 @@ class Bot:
             else:
                 score += position['weight'] * self.taker_profit
         return score
+
+    def get_segments_score(self):
+        c_p_length = len(self.closed_positions)
+        positions_per_segment = c_p_length / 6
+        segments_score = {"won": 0, "lost": 0}
+        for i in range(6):
+            from_i = round(i * positions_per_segment)
+            to_i = round((i + 1) * positions_per_segment)
+            score = self.get_score(last_positions=[from_i, to_i])
+            segments_score["won" if score > 0 else "lost"] += 1
+        return segments_score
 
     def get_config(self):
         instantiation = copy.deepcopy(vars(self))
@@ -184,13 +198,19 @@ class Bot:
             else:
                 footer_report["lost"] += 1
                 footer_report["lost_weights"] += position['weight']
+        footer_report["won_weights"] = round(footer_report["won_weights"], 3)
+        footer_report["lost_weights"] = round(footer_report["lost_weights"], 3)
+        footer_report["lost_weights"] = round(footer_report["lost_weights"], 3)
+        footer_report["layer_1_score"] = round(footer_report["layer_1_score"], 3)
+        footer_report["layer_2_score"] = round(footer_report["layer_2_score"], 3)
         if(print_report):
             print('\nWon: ', footer_report["won"], ' - Won weights: ', footer_report["won_weights"])
             print('Lost: ', footer_report["lost"], ' - Lost weights: ', footer_report["lost_weights"])
             print("Positions left open: ", footer_report["positions_left_open"])
             print('Layer 1 score: ', footer_report["layer_1_score"])
             print("Layer 2 score: ", footer_report["layer_2_score"])
-            print("\n CONFIG USED: ")
+            print("Segments score (layer1): ", self.get_segments_score())
+            print("CONFIG USED: ")
             print(self.get_config())
         return footer_report
 
