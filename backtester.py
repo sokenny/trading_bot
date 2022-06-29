@@ -42,8 +42,8 @@ def backtest(bot, candles, to_return="whole_log"):
         else:
             print('No podemos avanzar, faltan velas para calcular el CCI')
 
+    print("\nTRADING ENDED.")
     bot.get_footer_report(print_report=True)
-
     sys.stdout = old_stdout
     whole_print_output = buffer.getvalue()
 

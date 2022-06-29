@@ -203,12 +203,14 @@ class Bot:
         footer_report["layer_1_score"] = round(footer_report["layer_1_score"], 3)
         footer_report["layer_2_score"] = round(footer_report["layer_2_score"], 3)
         if(print_report):
+            print("\n\nPositions left open: ", footer_report["positions_left_open"])
+            for position in self.open_positions:
+                print(position.get())
             print('\nWon: ', footer_report["won"], ' - Won weights: ', footer_report["won_weights"])
             print('Lost: ', footer_report["lost"], ' - Lost weights: ', footer_report["lost_weights"])
-            print("Positions left open: ", footer_report["positions_left_open"])
             print('Layer 1 score: ', footer_report["layer_1_score"])
             print("Layer 2 score: ", footer_report["layer_2_score"])
-            print("Segments score (layer1): ", self.get_segments_score())
+            print("Segments score (layer1): ", self.get_segments_score(), "\n")
             print("CONFIG USED: ")
             print(self.get_config())
         return footer_report

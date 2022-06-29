@@ -25,11 +25,15 @@ def get_bots():
 
 bots =  get_bots()
 results=[]
-period = ['10 May, 2021', '11 May, 2021']
+period = ['14 Jun, 2022', '15 Jun, 2022']
+candles = None
 
 for i, bot in enumerate(bots):
-    result = backtester.backtest(bot, period, to_return="footer_report")
-    results.append([result])
+    if(candles == None):
+        candles = bot.get_candle_sticks(period)
+    result = backtester.backtest(bot, candles, to_return="footer_report")
+    print(f'BOT {i}')
+    results.append(result)
 
-for i in results:
-    print(f'\nResult {i}: {results[i]}')
+# for i, result in enumerate(results):
+#     print(f'\nResult {i}: ', result)
