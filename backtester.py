@@ -1,14 +1,11 @@
 import math
 import os
-import config
 import sys
 import io
 
 THIS_PATH = os.path.abspath(os.path.dirname(__file__))
-fetched_candles = False
-dfc = None
 
-def backtest(bot, period, to_return="whole_log"):
+def backtest(bot, candles, to_return="whole_log"):
 
     global fetched_candles
     global dfc
@@ -16,10 +13,7 @@ def backtest(bot, period, to_return="whole_log"):
     old_stdout = sys.stdout
     sys.stdout = buffer = io.StringIO()
 
-    if(not fetched_candles):
-        candles = bot.get_candle_sticks(config.PAIR, config.KLINE_INTERVAL, period)
-        dfc = bot.get_parsed_df_w_cci(candles)
-        fetched_candles = True
+    dfc = bot.get_parsed_df_w_cci(candles)
 
     for index, candle in dfc.iterrows():
         canProceed = not math.isnan(candle['CCI'])

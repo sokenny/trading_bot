@@ -7,6 +7,12 @@ from Bot import Bot
 HOST = keys.HOST
 PORT = keys.PORT
 
+def get_single_backtest(data):
+    bot = Bot(mode="sandbox", pair=data['PAIR'], trade_amount=data['TRADE_AMOUNT'], taker_profit=data['TAKER_PROFIT'], stop_loss=data['STOP_LOSS'], positions_structure=eval(data['POSITIONS_STRUCTURE']), kline_to_use_in_prod=data['KLINE_TO_USE_IN_PROD'], kline_interval=data['KLINE_INTERVAL'], cci_peak=data['CCI_PEAK'], position_expiry_time=data['POSITION_EXPIRY_TIME'], score_filter=data['SCORE_FILTER'], score_longitude=data['SCORE_LONGITUDE'], start_gap_percentage=data['START_GAP_PERCENTAGE'])
+    candles = bot.get_candle_sticks(eval(data['PERIOD']))
+    backtest_log = backtester.backtest(bot, candles)
+    return backtest_log
+
 class NeuralHTTP(BaseHTTPRequestHandler):
 
     def get_parsed_data(self):
@@ -19,8 +25,8 @@ class NeuralHTTP(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-type", "text/html")
         self.end_headers()
-        bot = Bot(mode="sandbox", pair=data['PAIR'], trade_amount=data['TRADE_AMOUNT'], taker_profit=data['TAKER_PROFIT'], stop_loss=data['STOP_LOSS'], positions_structure=eval(data['POSITIONS_STRUCTURE']),  kline_to_use_in_prod=data['KLINE_TO_USE_IN_PROD'], kline_interval=data['KLINE_INTERVAL'], cci_peak=data['CCI_PEAK'], position_expiry_time=data['POSITION_EXPIRY_TIME'], score_filter=data['SCORE_FILTER'], score_longitude=data['SCORE_LONGITUDE'], start_gap_percentage=data['START_GAP_PERCENTAGE'])
-        self.wfile.write(bytes(backtester.backtest(bot, period=eval(data['PERIOD'])), "utf-8"))
+        backtest_log = get_single_backtest(data)
+        self.wfile.write(bytes(backtest_log, "utf-8"))
 
 def connect():
     server = HTTPServer((HOST, PORT), NeuralHTTP)

@@ -8,7 +8,6 @@ import config
 from Position import Position
 
 client = Client(api_key=keys.Akey, api_secret=keys.Skey)
-
 KLINE_STRUCTURE = ['open-time', 'open', 'high', 'low', 'close', 'volume', 'close-time', 'quote-asset-volume', 'number-of-trades', 'tbba-volume', 'tbqa-volume', 'ignore']
 
 class Bot:
@@ -35,9 +34,9 @@ class Bot:
         self.open_positions = []
         self.closed_positions = []
 
-    def get_candle_sticks(self, pair, KLINE_INTERVAL, PERIOD):
+    def get_candle_sticks(self, PERIOD):
         INTERVALS = {1: Client.KLINE_INTERVAL_1MINUTE, 5: Client.KLINE_INTERVAL_5MINUTE, 15: Client.KLINE_INTERVAL_15MINUTE}
-        candles = client.get_historical_klines(pair, INTERVALS[KLINE_INTERVAL], *PERIOD)
+        candles = client.get_historical_klines(self.pair, INTERVALS[self.kline_interval], *PERIOD)
         return candles
 
     def get_parsed_df(self, candles):
@@ -213,6 +212,3 @@ class Bot:
             print("CONFIG USED: ")
             print(self.get_config())
         return footer_report
-
-
-
