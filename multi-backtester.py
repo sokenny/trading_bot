@@ -25,7 +25,7 @@ def get_bots():
 
 bots =  get_bots()
 results=[]
-period = ['14 Jun, 2022', '15 Jun, 2022']
+period = ['11 Mar, 2021', '12 Mar, 2021']
 candles = None
 
 for i, bot in enumerate(bots):

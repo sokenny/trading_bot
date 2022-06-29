@@ -16,6 +16,7 @@ def backtest(bot, candles, to_return="whole_log"):
     dfc = bot.get_parsed_df_w_cci(candles)
 
     for index, candle in dfc.iterrows():
+        bot.last_candle = candle
         canProceed = not math.isnan(candle['CCI'])
         if(canProceed):
             CCI = candle['CCI']

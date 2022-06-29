@@ -33,6 +33,7 @@ class Bot:
         self.pending_positions = []
         self.open_positions = []
         self.closed_positions = []
+        self.last_candle = None
 
     def get_candle_sticks(self, PERIOD):
         INTERVALS = {1: Client.KLINE_INTERVAL_1MINUTE, 5: Client.KLINE_INTERVAL_5MINUTE, 15: Client.KLINE_INTERVAL_15MINUTE}
@@ -186,6 +187,7 @@ class Bot:
         del instantiation['pending_positions']
         del instantiation['closed_positions']
         del instantiation['open_positions']
+        del instantiation['last_candle']
         return instantiation
 
     def get_footer_report(self, print_report=False):
@@ -205,7 +207,10 @@ class Bot:
         if(print_report):
             print("\n\nPositions left open: ", footer_report["positions_left_open"])
             for position in self.open_positions:
-                print(position.get())
+                parsed_position = position.get()
+                parsed_position["_last_price"] = self.last_candle["close"]
+                parsed_position["_price_variation"] = self.get_price_variation(self.last_candle["close"], parsed_position["open_price"])
+                print(parsed_position)
             print('\nWon: ', footer_report["won"], ' - Won weights: ', footer_report["won_weights"])
             print('Lost: ', footer_report["lost"], ' - Lost weights: ', footer_report["lost_weights"])
             print('Layer 1 score: ', footer_report["layer_1_score"])
