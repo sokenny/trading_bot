@@ -3,21 +3,23 @@ import json
 import backtester
 import multibacktester
 import keys
+import config as default_config
 from Bot import Bot
 
 HOST = keys.HOST
 PORT = keys.PORT
 
 def get_single_backtest(config):
-    bot = Bot(mode="sandbox", pair=config['PAIR'], trade_amount=config['TRADE_AMOUNT'], take_profit=config['TAKE_PROFIT'], stop_loss=config['STOP_LOSS'], position_structure=eval(config['POSITION_STRUCTURE']), kline_to_use_in_prod=config['KLINE_TO_USE_IN_PROD'], kline_interval=config['KLINE_INTERVAL'], cci_peak=config['CCI_PEAK'], operation_expiry_time=config['OPERATION_EXPIRY_TIME'], score_filter=config['SCORE_FILTER'], score_longitude=config['SCORE_LONGITUDE'], start_gap_percentage=config['START_GAP_PERCENTAGE'])
+    bot = Bot(mode="sandbox", pair=config['PAIR'], trade_amount=config['TRADE_AMOUNT'], take_profit=config['TAKE_PROFIT'], stop_loss=config['STOP_LOSS'], position_structure=eval(config['POSITION_STRUCTURE']), cci_peak=config['CCI_PEAK'], operation_expiry_time=config['OPERATION_EXPIRY_TIME'], start_gap_percentage=config['START_GAP_PERCENTAGE'], kline_to_use_in_prod=default_config.KLINE_TO_USE_IN_PROD, kline_interval=default_config.KLINE_INTERVAL, score_filter=default_config.SCORE_FILTER, score_longitude=default_config.SCORE_LONGITUDE)
     candles = bot.get_candle_sticks(eval(config['PERIOD']))
     backtest_log = backtester.backtest(bot, candles)
     return backtest_log
 
 def get_multi_backtest(configs):
     parsed_configs = {}
+    to_not_eval = ["PAIR", "OPERATION_EXPIRY_TIME"]
     for key in configs.keys():
-        parsed_configs[key] = eval(configs[key])
+        parsed_configs[key] = eval(configs[key]) if key not in to_not_eval else configs[key]
     backtest_log = multibacktester.backtest(parsed_configs)[0]
     return backtest_log
 

@@ -11,8 +11,6 @@ def backtest(configs):
     sys.stdout = buffer = io.StringIO()
 
     default_config = {"PAIR": config.PAIR, "PERIOD": config.PERIOD, "TRADE_AMOUNT": config.TRADE_AMOUNT, "TAKE_PROFIT": config.TAKE_PROFIT, "STOP_LOSS": config.STOP_LOSS, "POSITION_STRUCTURE": config.POSITION_STRUCTURE, "KLINE_TO_USE_IN_PROD": config.KLINE_TO_USE_IN_PROD, "KLINE_INTERVAL": config.KLINE_INTERVAL, "CCI_PEAK": config.CCI_PEAK, "OPERATION_EXPIRY_TIME": config.OPERATION_EXPIRY_TIME, "SCORE_FILTER": config.SCORE_FILTER, "SCORE_LONGITUDE": config.SCORE_LONGITUDE, "START_GAP_PERCENTAGE": config.START_GAP_PERCENTAGE}
-    # config_variants = {"STOP_LOSS": [2,4,5,35,50], "TAKE_PROFIT": [1,1.5,2,3], "START_GAP_PERCENTAGE": [0, 0.5, 1, 2], "CCI_PEAK": [50,100,170,200,250,300], "POSITION_STRUCTURE":[[{'weight': .15}, {'weight': .15}, {'weight': .25}, {'weight': .35}], [{'weight': 1}]]}
-    # config_variants = {"STOP_LOSS": [3, 4, 5], "TAKE_PROFIT": [1, 1.5, 2], "START_GAP_PERCENTAGE": [0, 0.5, 1], "CCI_PEAK": [170, 200, 250], "POSITION_STRUCTURE": [[{'weight': .15}, {'weight': .15}, {'weight': .25}, {'weight': .35}]]}
 
     def get_config(default_config, custom_parameters):
         new_config = default_config
@@ -28,7 +26,7 @@ def backtest(configs):
                     for i4, cci_peak in enumerate(configs["CCI_PEAK"]):
                         for i5, position_structure in enumerate(configs["POSITION_STRUCTURE"]):
                             default_copy = copy.deepcopy(default_config)
-                            this_config = get_config(default_copy, {"STOP_LOSS": stop_loss, "TAKE_PROFIT": take_profit, "START_GAP_PERCENTAGE": start_gap_percentage, "CCI_PEAK": cci_peak, "POSITION_STRUCTURE": position_structure})
+                            this_config = get_config(default_copy, {"PAIR": configs["PAIR"], "OPERATION_EXPIRY_TIME": configs["OPERATION_EXPIRY_TIME"], "STOP_LOSS": stop_loss, "TAKE_PROFIT": take_profit, "START_GAP_PERCENTAGE": start_gap_percentage, "CCI_PEAK": cci_peak, "POSITION_STRUCTURE": position_structure})
                             bots.append(Bot("sandbox", this_config["PAIR"], this_config["TRADE_AMOUNT"], this_config["TAKE_PROFIT"], this_config["STOP_LOSS"],  this_config["POSITION_STRUCTURE"], this_config["KLINE_TO_USE_IN_PROD"], this_config["KLINE_INTERVAL"], this_config["CCI_PEAK"], this_config["OPERATION_EXPIRY_TIME"], this_config["SCORE_FILTER"], this_config["SCORE_LONGITUDE"], this_config["START_GAP_PERCENTAGE"]))
         return bots
 
