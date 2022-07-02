@@ -1,37 +1,40 @@
 import copy
+import uuid
+
 import keys
 import pandas as pd
 from binance.client import Client
 import ta
 import time
 import config
-from Position import Position
+from Operation import Operation
+
 
 client = Client(api_key=keys.Akey, api_secret=keys.Skey)
 KLINE_STRUCTURE = ['open-time', 'open', 'high', 'low', 'close', 'volume', 'close-time', 'quote-asset-volume', 'number-of-trades', 'tbba-volume', 'tbqa-volume', 'ignore']
 
 class Bot:
-    def __init__(self, mode, pair, trade_amount, taker_profit, stop_loss, positions_structure, kline_to_use_in_prod, kline_interval, cci_peak, position_expiry_time, score_filter, score_longitude, start_gap_percentage):
+    def __init__(self, mode, pair, trade_amount, take_profit, stop_loss, position_structure, kline_to_use_in_prod, kline_interval, cci_peak, operation_expiry_time, score_filter, score_longitude, start_gap_percentage):
         self.mode = mode
         self.pair = pair
         self.trade_amount = trade_amount
-        self.taker_profit = taker_profit
+        self.take_profit = take_profit
         self.stop_loss = stop_loss
-        self.positions_structure = positions_structure
+        self.position_structure = position_structure
         self.kline_to_use_in_prod = kline_to_use_in_prod
         self.kline_interval = kline_interval
         self.cci_peak = cci_peak
         self.default_cci_longitude = config.DEFAULT_CCI_LONGITUDE
         self.cci_longitude = int((self.kline_to_use_in_prod / self.kline_interval) * self.default_cci_longitude)
-        self.position_expiry_time = position_expiry_time
+        self.operation_expiry_time = operation_expiry_time
         self.score_filter = score_filter
         self.score_longitude = score_longitude
         self.start_gap_percentage = start_gap_percentage
 
         self.status = "analysing"
         self.last_cci = None
-        self.pending_positions = []
-        self.open_positions = []
+        self.pending_operations = []
+        self.open_operations = []
         self.closed_positions = []
         self.last_candle = None
 
@@ -88,58 +91,60 @@ class Bot:
     def get_operator(self, CCI):
         return -1 if self.get_position_type(CCI) == "long" else 1
 
-    def get_positions_to_create(self, price, create_time, CCI):
-        price_position_multiplier = (self.taker_profit / len(self.positions_structure)) / 100
-        positions_to_create = []
+    def get_position_to_create(self, price, create_time, CCI):
+        price_position_multiplier = (self.take_profit / len(self.position_structure)) / 100
+        position_to_create = []
         operator = self.get_operator(CCI)
         position_type = self.get_position_type(CCI)
         layer = self.get_layer()
-        for i, p in enumerate(self.positions_structure):
-            amount = self.trade_amount * p['weight']
+        position_id = uuid.uuid4()
+        for i, operation in enumerate(self.position_structure):
+            amount = self.trade_amount * operation['weight']
             start_price = price + (((price * price_position_multiplier) * (i + 1)) + ((self.start_gap_percentage / 100) * price)) * operator
-            end_price = start_price + ((start_price * (self.taker_profit / 100))) * -operator
+            end_price = start_price + ((start_price * (self.take_profit / 100))) * -operator
             stop_loss = start_price + ((start_price * (self.stop_loss / 100))) * operator
-            positions_to_create.append(Position("pending", start_price, end_price, stop_loss, amount, position_type, p['weight'], create_time,  layer))
-        return positions_to_create
+            position_to_create.append(Operation("pending", start_price, end_price, stop_loss, amount, position_type, operation['weight'], create_time,  layer, position_id))
+        return position_to_create
 
-    def create_positions(self, price, candle_time, CCI):
+    def create_position(self, price, candle_time, CCI):
         actual_time = int(time.time() * 1000)
         create_time = candle_time if self.mode == "sandbox" else actual_time
-        positions_to_create = self.get_positions_to_create(price, create_time, CCI)
-        for position in positions_to_create:
-            print('Created position: ', position.get())
-            self.pending_positions.append(position)
+        position_to_create = self.get_position_to_create(price, create_time, CCI)
+        print("Opened position!")
+        for operation in position_to_create:
+            print('Created operation: ', operation.get())
+            self.pending_operations.append(operation)
 
-    def try_open_position(self, pending_position_index, candle):
-        position = self.pending_positions[pending_position_index]
-        position_expired = self.try_expire_position(pending_position_index, candle)
-        if(not position_expired):
-            can_open_position = candle['close'] <= position.start_price if position.type == "long" else candle['close'] >= position.start_price
-            if(can_open_position):
-                position.open_time = candle['close-time']
-                position.status = "open"
-                position.open_price = candle['close']
-                self.open_position(pending_position_index)
+    def try_open_operation(self, pending_operation_index, candle):
+        operation = self.pending_operations[pending_operation_index]
+        operation_expired = self.try_expire_operation(pending_operation_index, candle)
+        if(not operation_expired):
+            can_open_operation = candle['close'] <= operation.start_price if operation.type == "long" else candle['close'] >= operation.start_price
+            if(can_open_operation):
+                operation.open_time = candle['close-time']
+                operation.status = "open"
+                operation.open_price = candle['close']
+                self.open_operation(pending_operation_index)
                 return True
             return False
         return False
 
-    def try_expire_position(self, pending_position_index, candle):
-        position = self.pending_positions[pending_position_index]
-        pending_lifetime = (candle['close-time'] - position.create_time) / 1000
-        if(pending_lifetime > self.position_expiry_time):
-            print('La siguiente posición expiró: ', self.pending_positions[pending_position_index].get())
-            del self.pending_positions[pending_position_index]
+    def try_expire_operation(self, pending_operation_index, candle):
+        operation = self.pending_operations[pending_operation_index]
+        pending_lifetime = (candle['close-time'] - operation.create_time) / 1000
+        if(pending_lifetime > self.operation_expiry_time):
+            print('La siguiente posición expiró: ', self.pending_operations[pending_operation_index].get())
+            del self.pending_operations[pending_operation_index]
             return True
         return False
 
-    def open_position(self, pending_position_index):
-        print('Opened position: ', self.pending_positions[pending_position_index].get())
-        self.open_positions.append(self.pending_positions[pending_position_index])
-        del self.pending_positions[pending_position_index]
+    def open_operation(self, pending_operation_index):
+        print('Opened position: ', self.pending_operations[pending_operation_index].get())
+        self.open_operations.append(self.pending_operations[pending_operation_index])
+        del self.pending_operations[pending_operation_index]
 
-    def try_close_position(self, open_position_index, candle):
-        position = self.open_positions[open_position_index]
+    def try_close_operation(self, open_operation_index, candle):
+        position = self.open_operations[open_operation_index]
         lost_position = candle['close'] <= position.stop_loss if position.type == "long" else candle['close'] >= position.stop_loss
         won_position = candle['close'] >= position.end_price if position.type == "long" else candle['close'] <= position.end_price
         if(won_position or lost_position):
@@ -147,14 +152,14 @@ class Bot:
             position.outcome = 1 if won_position else 0
             position.exit_price = candle['close']
             position.status = "closed"
-            self.close_position(open_position_index)
+            self.close_position(open_operation_index)
             return True
         return False
 
     def close_position(self, position_index):
-        print('Closed position: ', self.open_positions[position_index].get())
-        self.closed_positions.append(self.open_positions[position_index].get())
-        del self.open_positions[position_index]
+        print('Closed position: ', self.open_operations[position_index].get())
+        self.closed_positions.append(self.open_operations[position_index].get())
+        del self.open_operations[position_index]
 
     def get_score(self, last_positions="all", target_layer=False):
         score = 0
@@ -168,7 +173,7 @@ class Bot:
             if(position['outcome'] == 0):
                 score -= position['weight'] * self.stop_loss
             else:
-                score += position['weight'] * self.taker_profit
+                score += position['weight'] * self.take_profit
         return score
 
     def get_segments_score(self):
@@ -184,14 +189,14 @@ class Bot:
 
     def get_config(self):
         instantiation = copy.deepcopy(vars(self))
-        del instantiation['pending_positions']
+        del instantiation['pending_operations']
         del instantiation['closed_positions']
-        del instantiation['open_positions']
+        del instantiation['open_operations']
         del instantiation['last_candle']
         return instantiation
 
     def get_footer_report(self, print_report=False):
-        footer_report = {"won": 0, "won_weights": 0, "lost": 0, "lost_weights": 0, "positions_left_open": len(self.open_positions), "layer_1_score": self.get_score(), "layer_2_score": self.get_score(target_layer=2), "config": self.get_config()}
+        footer_report = {"won": 0, "won_weights": 0, "lost": 0, "lost_weights": 0, "positions_left_open": len(self.open_operations), "layer_1_score": self.get_score(), "layer_2_score": self.get_score(target_layer=2), "config": self.get_config()}
         for position in self.closed_positions:
             if (position['outcome'] == 1):
                 footer_report["won"] += 1
@@ -205,16 +210,15 @@ class Bot:
         footer_report["layer_1_score"] = round(footer_report["layer_1_score"], 3)
         footer_report["layer_2_score"] = round(footer_report["layer_2_score"], 3)
         if(print_report):
-            print("\n\nPositions left open: ", footer_report["positions_left_open"])
-            for position in self.open_positions:
+            print("\n\nOperations left open: ", footer_report["positions_left_open"])
+            for position in self.open_operations:
                 parsed_position = position.get()
                 parsed_position["_last_price"] = self.last_candle["close"]
-                parsed_position["_price_variation"] = self.get_price_variation(self.last_candle["close"], parsed_position["open_price"])
+                parsed_position["_price_variation"] = -self.get_price_variation(self.last_candle["close"], parsed_position["open_price"])
                 print(parsed_position)
             print('\nWon: ', footer_report["won"], ' - Won weights: ', footer_report["won_weights"])
             print('Lost: ', footer_report["lost"], ' - Lost weights: ', footer_report["lost_weights"])
             print('Layer 1 score: ', footer_report["layer_1_score"])
-            print("Layer 2 score: ", footer_report["layer_2_score"])
             print("Segments score (layer1): ", self.get_segments_score(), "\n")
             print("CONFIG USED: ")
             print(self.get_config())

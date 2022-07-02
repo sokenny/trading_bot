@@ -1,14 +1,8 @@
 import math
-import os
 import sys
 import io
 
-THIS_PATH = os.path.abspath(os.path.dirname(__file__))
-
-def backtest(bot, candles, to_return="whole_log"):
-
-    global fetched_candles
-    global dfc
+def backtest(bot, candles):
 
     old_stdout = sys.stdout
     sys.stdout = buffer = io.StringIO()
@@ -22,17 +16,17 @@ def backtest(bot, candles, to_return="whole_log"):
             CCI = candle['CCI']
             print(f'\nCCI: , {CCI} - time:  {candle["close-time"]} - bot status: ', bot.status, ' - candle price: ', candle['close'], ' - layer 1 score: ', bot.get_score(), ' - layer 2 score: ', bot.get_score(target_layer=2))
 
-            for i, position in enumerate(bot.pending_positions):
-                bot.try_open_position(i, candle)
-            for i, position in enumerate(bot.open_positions):
-                bot.try_close_position(i, candle)
+            for i, operation in enumerate(bot.pending_operations):
+                bot.try_open_operation(i, candle)
+            for i, operation in enumerate(bot.open_operations):
+                bot.try_close_operation(i, candle)
 
             if(bot.status == "stalking"):
                 started_regression = bot.started_regression(CCI)
                 bot.last_cci = CCI
                 if(started_regression):
-                    print("Empezó la regresion! Abrimos compras")
-                    bot.create_positions(candle['close'], candle['close-time'], CCI)
+                    print("Empezó la regresion! Abrimos posicion")
+                    bot.create_position(candle['close'], candle['close-time'], CCI)
                     bot.status = "waiting"
                 continue
 
@@ -48,4 +42,4 @@ def backtest(bot, candles, to_return="whole_log"):
     sys.stdout = old_stdout
     whole_print_output = buffer.getvalue()
 
-    return whole_print_output if to_return == "whole_log" else bot.get_footer_report(print_report=True)
+    return [whole_print_output, bot.get_footer_report(print_report=True)]
