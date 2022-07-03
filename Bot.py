@@ -1,6 +1,5 @@
 import copy
 import uuid
-
 import keys
 import pandas as pd
 from binance.client import Client
