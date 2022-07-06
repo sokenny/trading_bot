@@ -4,3 +4,5 @@ __pycache__/
 *.py[cod]
 candles
 prueba.py
+records/*
+!records/.gitkeep
