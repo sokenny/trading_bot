@@ -44,5 +44,5 @@ def log_report(bot):
     f.write(str(to_log))
     f.close()
 
-bot = Bot(mode="live", pair="ROSEUSDT", take_profit=3, stop_loss=25, position_structure=[{'weight': .5}, {'weight': .5}], cci_peak=250, operation_expiry_time=2500, start_gap_percentage=2, trade_amount=100, kline_interval=5, kline_to_use_in_prod=5, score_filter=0, score_longitude=10)
+bot = Bot(mode="live", pair="ROSEUSDT", take_profit=3, stop_loss=25, position_structure=[{'weight': .5}, {'weight': .5}], cci_peak=50, operation_expiry_time=25000, start_gap_percentage=2, trade_amount=100, kline_interval=5, kline_to_use_in_prod=5, score_filter=0, score_longitude=10)
 livetest(bot, trade_every=60, log_every=1800)
