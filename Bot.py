@@ -24,7 +24,7 @@ class Bot:
         self.kline_interval = kline_interval
         self.cci_peak = cci_peak
         self.default_cci_longitude = config.DEFAULT_CCI_LONGITUDE
-        self.cci_longitude = int((self.kline_to_use_in_prod / self.kline_interval) * self.default_cci_longitude) + 0 if self.mode == "live" else 0
+        self.cci_longitude = int((self.kline_to_use_in_prod / self.kline_interval) * self.default_cci_longitude)
         self.operation_expiry_time = operation_expiry_time
         self.score_filter = score_filter
         self.score_longitude = score_longitude
