@@ -13,7 +13,8 @@ client = Client(api_key=keys.Akey, api_secret=keys.Skey)
 KLINE_STRUCTURE = ['open-time', 'open', 'high', 'low', 'close', 'volume', 'close-time', 'quote-asset-volume', 'number-of-trades', 'tbba-volume', 'tbqa-volume', 'ignore']
 
 class Bot:
-    def __init__(self, mode, pair, trade_amount, take_profit, stop_loss, position_structure, kline_to_use_in_prod, kline_interval, cci_peak, operation_expiry_time, score_filter, score_longitude, start_gap_percentage):
+    def __init__(self, mode, pair, trade_amount, take_profit, stop_loss, position_structure, kline_to_use_in_prod, kline_interval, cci_peak, operation_expiry_time, score_filter, score_longitude, start_gap_percentage, id=False):
+        self.id = id or str(uuid.uuid4())
         self.mode = mode
         self.pair = pair
         self.trade_amount = trade_amount
