@@ -97,7 +97,7 @@ class Bot:
         operator = self.get_operator(CCI)
         position_type = self.get_position_type(CCI)
         layer = self.get_layer()
-        position_id = uuid.uuid4()
+        position_id = str(uuid.uuid4())
         for i, operation in enumerate(self.position_structure):
             amount = self.trade_amount * operation['weight']
             start_price = price + (((price * price_position_multiplier) * (i + 1)) + ((self.start_gap_percentage / 100) * price)) * operator
