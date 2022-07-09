@@ -13,7 +13,7 @@ client = Client(api_key=keys.Akey, api_secret=keys.Skey)
 KLINE_STRUCTURE = ['open-time', 'open', 'high', 'low', 'close', 'volume', 'close-time', 'quote-asset-volume', 'number-of-trades', 'tbba-volume', 'tbqa-volume', 'ignore']
 
 class Bot:
-    def __init__(self, mode, pair, trade_amount, take_profit, stop_loss, position_structure, kline_to_use_in_prod, kline_interval, cci_peak, operation_expiry_time, score_filter, score_longitude, start_gap_percentage, id=False):
+    def __init__(self, mode, pair, trade_amount, take_profit, stop_loss, position_structure, kline_to_use_in_prod, kline_interval, cci_peak, operation_expiry_time, start_gap_percentage, id=False):
         self.id = id or str(uuid.uuid4())
         self.mode = mode
         self.pair = pair
@@ -27,8 +27,6 @@ class Bot:
         self.default_cci_longitude = config.DEFAULT_CCI_LONGITUDE
         self.cci_longitude = int((self.kline_to_use_in_prod / self.kline_interval) * self.default_cci_longitude)
         self.operation_expiry_time = operation_expiry_time
-        self.score_filter = score_filter
-        self.score_longitude = score_longitude
         self.start_gap_percentage = start_gap_percentage
 
         self.status = "analysing"
@@ -76,9 +74,6 @@ class Bot:
     def get_position_type(self, CCI):
         return "short" if CCI > 0 else "long"
 
-    def get_layer(self):
-        return 2 if self.get_score(last_positions=self.score_longitude) > self.score_filter else 1
-
     def started_regression(self, CCI):
         return CCI > self.last_cci if self.last_cci < 0 else CCI < self.last_cci
 
@@ -96,14 +91,13 @@ class Bot:
         position_to_create = []
         operator = self.get_operator(CCI)
         position_type = self.get_position_type(CCI)
-        layer = self.get_layer()
         position_id = str(uuid.uuid4())
         for i, operation in enumerate(self.position_structure):
             amount = self.trade_amount * operation['weight']
             start_price = price + (((price * price_position_multiplier) * (i + 1)) + ((self.start_gap_percentage / 100) * price)) * operator
             end_price = start_price + ((start_price * (self.take_profit / 100))) * -operator
             stop_loss = start_price + ((start_price * (self.stop_loss / 100))) * operator
-            position_to_create.append(Operation("pending", start_price, end_price, stop_loss, amount, position_type, operation['weight'], create_time,  layer, position_id))
+            position_to_create.append(Operation("pending", start_price, end_price, stop_loss, amount, position_type, operation['weight'], create_time,  position_id))
         return position_to_create
 
     def create_position(self, price, candle_time, CCI):
@@ -161,15 +155,13 @@ class Bot:
         self.closed_positions.append(self.open_operations[position_index].get())
         del self.open_operations[position_index]
 
-    def get_score(self, last_positions="all", target_layer=False):
+    def get_score(self, last_positions="all"):
         score = 0
         if(isinstance(last_positions, list)):
             positions_to_iterate = self.closed_positions[last_positions[0]:last_positions[1]]
         else:
             positions_to_iterate  = self.closed_positions[0 if last_positions == "all" else -last_positions:]
         for position in positions_to_iterate:
-            if target_layer and position['layer'] != target_layer:
-                continue
             if(position['outcome'] == 0):
                 score -= position['weight'] * self.stop_loss
             else:
@@ -196,7 +188,7 @@ class Bot:
         return instantiation
 
     def get_footer_report(self, print_report=False):
-        footer_report = {"won": 0, "won_weights": 0, "lost": 0, "lost_weights": 0, "positions_left_open": len(self.open_operations), "layer_1_score": self.get_score(), "layer_2_score": self.get_score(target_layer=2), "config": self.get_config()}
+        footer_report = {"won": 0, "won_weights": 0, "lost": 0, "lost_weights": 0, "positions_left_open": len(self.open_operations), "score": self.get_score(), "config": self.get_config()}
         for position in self.closed_positions:
             if (position['outcome'] == 1):
                 footer_report["won"] += 1
@@ -207,8 +199,7 @@ class Bot:
         footer_report["won_weights"] = round(footer_report["won_weights"], 3)
         footer_report["lost_weights"] = round(footer_report["lost_weights"], 3)
         footer_report["lost_weights"] = round(footer_report["lost_weights"], 3)
-        footer_report["layer_1_score"] = round(footer_report["layer_1_score"], 3)
-        footer_report["layer_2_score"] = round(footer_report["layer_2_score"], 3)
+        footer_report["score"] = round(footer_report["score"], 3)
         if(print_report):
             print("\n\nOperations left open: ", footer_report["positions_left_open"])
             for position in self.open_operations:
@@ -218,8 +209,8 @@ class Bot:
                 print(parsed_position)
             print('\nWon: ', footer_report["won"], ' - Won weights: ', footer_report["won_weights"])
             print('Lost: ', footer_report["lost"], ' - Lost weights: ', footer_report["lost_weights"])
-            print('Layer 1 score: ', footer_report["layer_1_score"])
-            print("Segments score (layer1): ", self.get_segments_score(), "\n")
+            print('Score: ', footer_report["score"])
+            print("Segments score: ", self.get_segments_score(), "\n")
             print("CONFIG USED: ")
             print(self.get_config())
         return footer_report

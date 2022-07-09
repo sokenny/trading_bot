@@ -27,7 +27,7 @@ def backtest(bot, candles):
 def trade_over_candle(bot, candle):
     CCI = candle['CCI']
     print(f'\nCCI: , {CCI} - time:  {candle["close-time"]} - bot status: ', bot.status, ' - candle price: ',
-          candle['close'], ' - layer 1 score: ', bot.get_score())
+          candle['close'], ' - score: ', bot.get_score())
 
     for i, operation in enumerate(bot.pending_operations):
         bot.try_open_operation(i, candle)

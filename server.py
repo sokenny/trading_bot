@@ -10,7 +10,7 @@ HOST = keys.HOST
 PORT = keys.PORT
 
 def get_single_backtest(config):
-    bot = Bot(mode="sandbox", pair=config['PAIR'], take_profit=config['TAKE_PROFIT'], stop_loss=config['STOP_LOSS'], position_structure=eval(config['POSITION_STRUCTURE']), cci_peak=config['CCI_PEAK'], operation_expiry_time=config['OPERATION_EXPIRY_TIME'], start_gap_percentage=config['START_GAP_PERCENTAGE'], kline_to_use_in_prod=default_config.KLINE_TO_USE_IN_PROD, kline_interval=default_config.KLINE_INTERVAL, score_filter=default_config.SCORE_FILTER, score_longitude=default_config.SCORE_LONGITUDE, trade_amount=default_config.TRADE_AMOUNT)
+    bot = Bot(mode="sandbox", pair=config['PAIR'], take_profit=config['TAKE_PROFIT'], stop_loss=config['STOP_LOSS'], position_structure=eval(config['POSITION_STRUCTURE']), cci_peak=config['CCI_PEAK'], operation_expiry_time=config['OPERATION_EXPIRY_TIME'], start_gap_percentage=config['START_GAP_PERCENTAGE'], kline_to_use_in_prod=default_config.KLINE_TO_USE_IN_PROD, kline_interval=default_config.KLINE_INTERVAL, trade_amount=default_config.TRADE_AMOUNT)
     candles = bot.get_candle_sticks(eval(config['PERIOD']))
     backtest_log = backtester.backtest(bot, candles)
     return backtest_log

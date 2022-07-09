@@ -54,7 +54,7 @@ def get_bot_state(bot, bot_path):
 def get_instantiated_operations(operations):
     instantiated_operations = []
     for operation in operations:
-        instantiated_operation = Operation(operation["status"], operation["start_price"], operation["end_price"], operation["stop_loss"], operation["amount"], operation["type"], operation["weight"], operation["create_time"],  operation["layer"], operation["position_id"], id=operation["id"])
+        instantiated_operation = Operation(operation["status"], operation["start_price"], operation["end_price"], operation["stop_loss"], operation["amount"], operation["type"], operation["weight"], operation["create_time"], operation["position_id"], id=operation["id"])
         instantiated_operations.append(instantiated_operation)
     return instantiated_operations
 
@@ -108,5 +108,5 @@ def register_config(bot, bot_path):
     f.write(to_log)
     f.close()
 
-bot = Bot(id="juanito", mode="live", pair="ROSEUSDT", take_profit=3, stop_loss=25, position_structure=[{'weight': .5}, {'weight': .5}], cci_peak=50, operation_expiry_time=25000, start_gap_percentage=2, trade_amount=100, kline_interval=5, kline_to_use_in_prod=5, score_filter=0, score_longitude=10)
+bot = Bot(id="juanito", mode="live", pair="ROSEUSDT", take_profit=3, stop_loss=25, position_structure=[{'weight': .5}, {'weight': .5}], cci_peak=50, operation_expiry_time=25000, start_gap_percentage=2, trade_amount=100, kline_interval=5, kline_to_use_in_prod=5)
 livetest(bot, trade_every=20, log_every=1800)
