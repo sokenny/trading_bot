@@ -27,7 +27,7 @@ def backtest(bot, candles):
 def trade_over_candle(bot, candle):
     CCI = candle['CCI']
     print(f'\nCCI: , {CCI} - time:  {candle["close-time"]} - bot status: ', bot.status, ' - candle price: ',
-          candle['close'], ' - score: ', bot.get_score())
+          candle['close'], ' - score: ', bot.get_score(), ' - weights in use: ', bot.get_allocated_weights())
 
     for i, operation in enumerate(bot.pending_operations):
         bot.try_open_operation(i, candle)
@@ -38,8 +38,8 @@ def trade_over_candle(bot, candle):
         started_regression = bot.started_regression(CCI)
         bot.last_cci = CCI
         if (started_regression):
-            print("Empezó la regresion! Abrimos posicion")
-            bot.create_position(candle['close'], candle['close-time'], CCI)
+            print("Empezó la regresion! Intentamos abrir posición")
+            bot.try_create_position(candle['close'], candle['close-time'], CCI)
             bot.status = "waiting"
         return
 

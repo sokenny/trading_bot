@@ -13,7 +13,7 @@ client = Client(api_key=keys.Akey, api_secret=keys.Skey)
 KLINE_STRUCTURE = ['open-time', 'open', 'high', 'low', 'close', 'volume', 'close-time', 'quote-asset-volume', 'number-of-trades', 'tbba-volume', 'tbqa-volume', 'ignore']
 
 class Bot:
-    def __init__(self, mode, pair, trade_amount, take_profit, stop_loss, position_structure, kline_to_use_in_prod, kline_interval, cci_peak, operation_expiry_time, start_gap_percentage, id=False):
+    def __init__(self, mode, pair, trade_amount, take_profit, stop_loss, position_structure, kline_to_use_in_prod, kline_interval, cci_peak, operation_expiry_time, start_gap_percentage, max_weight_allocation, id=False):
         self.id = id or str(uuid.uuid4())
         self.mode = mode
         self.pair = pair
@@ -28,6 +28,7 @@ class Bot:
         self.cci_longitude = int((self.kline_to_use_in_prod / self.kline_interval) * self.default_cci_longitude)
         self.operation_expiry_time = operation_expiry_time
         self.start_gap_percentage = start_gap_percentage
+        self.max_weight_allocation = max_weight_allocation
 
         self.status = "analysing"
         self.last_cci = None
@@ -62,6 +63,20 @@ class Bot:
     def get_cci(self, high, low, close):
         CCI = self.get_cci_df(high, low, close).tail(1).values[0]
         return CCI
+
+    def get_allocated_weights(self):
+        weights = 0
+        for operation in self.pending_operations:
+            weights += operation.weight
+        for operation in self.open_operations:
+            weights += operation.weight
+        return weights
+
+    def get_position_weight(self):
+        weights = 0
+        for operation in self.position_structure:
+            weights += operation["weight"]
+        return weights
 
     def reached_peak(self, CCI):
         if(CCI == None):
@@ -100,14 +115,18 @@ class Bot:
             position_to_create.append(Operation("pending", start_price, end_price, stop_loss, amount, position_type, operation['weight'], create_time,  position_id))
         return position_to_create
 
-    def create_position(self, price, candle_time, CCI):
-        actual_time = int(time.time() * 1000)
-        create_time = candle_time if self.mode == "sandbox" else actual_time
-        position_to_create = self.get_position_to_create(price, create_time, CCI)
-        print("Opened position!")
-        for operation in position_to_create:
-            print('Created operation: ', operation.get())
-            self.pending_operations.append(operation)
+    def try_create_position(self, price, candle_time, CCI):
+        if(self.get_allocated_weights() + self.get_position_weight() > self.max_weight_allocation):
+            print("No pudimos abrir posicion")
+            return False
+        else:
+            actual_time = int(time.time() * 1000)
+            create_time = candle_time if self.mode == "sandbox" else actual_time
+            position_to_create = self.get_position_to_create(price, create_time, CCI)
+            print("Opened position!")
+            for operation in position_to_create:
+                print('Created operation: ', operation.get())
+                self.pending_operations.append(operation)
 
     def try_open_operation(self, pending_operation_index, candle):
         operation = self.pending_operations[pending_operation_index]

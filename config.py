@@ -11,3 +11,4 @@ CCI_PEAK = 200 # Valor en el que se activa la señal del CCI
 PERIOD = ["15 Nov, 2021", "25 Nov, 2022"] # Periodo de velas a backtestear si se quiere seleccionar un rango especifico, se establecen 2 parametros, ej: "15 Mar, 2022", "6 Apr, 2022". Si es un periodo relativo al dia presente, mandamos un solo item, ej: "1 day ago UTC"
 OPERATION_EXPIRY_TIME = 600 # Tiempo en segundos, que deben transcurrir para abortar una posicion "pending" si no logró abrirse
 START_GAP_PERCENTAGE = 0 # Porcentage base desde el cual se promedia a la baja o a la alta (ej: si esta en 2, un precio de 5 dolares va a empezar a abrir sus posiciones en 5.2)
+MAX_WEIGHT_ALLOCATION = 2
