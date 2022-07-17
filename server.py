@@ -4,7 +4,7 @@ import backtester
 import multibacktester
 import keys
 import config as default_config
-from Bot import Bot
+from classes.Bot import Bot
 
 HOST = keys.HOST
 PORT = keys.PORT

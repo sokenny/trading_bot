@@ -6,7 +6,7 @@ from binance.client import Client
 import ta
 import time
 import config
-from Operation import Operation
+from classes.Operation import Operation
 
 
 client = Client(api_key=keys.Akey, api_secret=keys.Skey)

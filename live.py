@@ -1,18 +1,16 @@
 from binance import Client
 import keys
-from Bot import Bot
-from backtester import trade_over_candle
+from trade_over_candle import trade_over_candle
 import os
 import time
-import Operation
+from classes import Operation
 import copy
 
 this_path = os.path.abspath(os.path.dirname(__file__))
 last_logged = None
-livetester_started = int(time.time())
-intervals = {1: Client.KLINE_INTERVAL_1MINUTE, 5: Client.KLINE_INTERVAL_5MINUTE, 15: Client.KLINE_INTERVAL_15MINUTE}
+bot_started = int(time.time())
 
-def livetest(initial_bot, trade_every, log_every):
+def operate(initial_bot, trade_every, log_every):
 
     bot_path = os.path.join(this_path, f'records/{initial_bot.id}')
     create_bot_directory(initial_bot, bot_path)
@@ -30,7 +28,7 @@ def livetest(initial_bot, trade_every, log_every):
             last_logged = int(time.time())
             log_report(bot, bot_path)
 
-        last_klines = client.get_historical_klines(bot.pair, intervals[bot.kline_interval], "2 hour ago UTC")
+        last_klines = client.get_historical_klines(bot.pair, Client.KLINE_INTERVAL_5MINUTE, "2 hour ago UTC")
 
         dfc = bot.get_parsed_df_w_cci(last_klines)
         kline_to_analyse = dfc.iloc[-1]
@@ -90,7 +88,7 @@ def create_bot_directory(bot, bot_path):
         f.close()
 
 def log_report(bot, bot_path):
-    global livetester_started
+    global bot_started
     to_log = f'\nTime: {int(time.time())}' \
              f'\nLast CCI: {bot.last_cci}' \
              f'\n# Pending operations: {len(bot.pending_operations)}' \
@@ -105,6 +103,3 @@ def register_config(bot, bot_path):
     to_log = f'CONFIG: \n{str(bot.get_config())}\n'
     f.write(to_log)
     f.close()
-
-bot = Bot(id="juanito", mode="live", pair="ROSEUSDT", take_profit=3, stop_loss=25, position_structure=[{'weight': .5}, {'weight': .5}], cci_peak=50, operation_expiry_time=2500, start_gap_percentage=2, max_weight_allocation=2, trade_amount=100, kline_interval=5, kline_to_use_in_prod=5)
-livetest(bot, trade_every=60, log_every=1800)
