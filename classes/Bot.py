@@ -9,7 +9,7 @@ import config
 from classes.Operation import Operation
 
 
-client = Client(api_key=keys.Akey, api_secret=keys.Skey)
+binance_client = Client(api_key=keys.Akey, api_secret=keys.Skey)
 KLINE_STRUCTURE = ['open-time', 'open', 'high', 'low', 'close', 'volume', 'close-time', 'quote-asset-volume', 'number-of-trades', 'tbba-volume', 'tbqa-volume', 'ignore']
 
 class Bot:
@@ -39,7 +39,7 @@ class Bot:
 
     def get_candle_sticks(self, PERIOD):
         INTERVALS = {1: Client.KLINE_INTERVAL_1MINUTE, 5: Client.KLINE_INTERVAL_5MINUTE, 15: Client.KLINE_INTERVAL_15MINUTE}
-        candles = client.get_historical_klines(self.pair, INTERVALS[self.kline_interval], *PERIOD)
+        candles = binance_client.get_historical_klines(self.pair, INTERVALS[self.kline_interval], *PERIOD)
         return candles
 
     def get_parsed_df(self, candles):
@@ -125,36 +125,88 @@ class Bot:
             position_to_create = self.get_position_to_create(price, create_time, CCI)
             print("Opened position!")
             for operation in position_to_create:
-                print('Created operation: ', operation.get())
-                self.pending_operations.append(operation)
+                if (self.mode == "live-trader"):
+                    self.__create_operation(operation)
+                else:
+                    self.pending_operations.append(operation)
+                    print('Created operation: ', operation.get())
+
+    def __create_operation(self, operation):
+        order_to_create = self.__get_order_to_create(operation)
+        if(binance_client.futures_create_order(timestamp=time.time(), **order_to_create)):
+            self.pending_operations.append(operation)
+            print("__create_operation: Binance order created!")
+
+    def __get_order_to_create(self, operation):
+        order = {"symbol": self.pair, "side": "BUY", "positionSide": operation.type.upper(), "timeInForce": "GTC", "type": "LIMIT", "quantity": operation.quantity, "price": operation.start_price, "newClientOrderId": operation.id }
+        return order
 
     def try_open_operation(self, pending_operation_index, candle):
         operation = self.pending_operations[pending_operation_index]
         operation_expired = self.try_expire_operation(pending_operation_index, candle)
         if(not operation_expired):
-            can_open_operation = candle['close'] <= operation.start_price if operation.type == "long" else candle['close'] >= operation.start_price
-            if(can_open_operation):
-                operation.open_time = candle['close-time']
-                operation.status = "open"
-                operation.open_price = candle['close']
-                self.open_operation(pending_operation_index)
-                return True
+            if(self.mode == "live-trader"):
+                self.__try_open_operation(operation, pending_operation_index)
+            else:
+                can_open_operation = candle['close'] <= operation.start_price if operation.type == "long" else candle['close'] >= operation.start_price
+                if(can_open_operation):
+                    operation.open_time = candle['close-time']
+                    operation.status = "open"
+                    operation.open_price = candle['close']
+                    self.open_operation(pending_operation_index)
+                    return True
             return False
         return False
+
+    def __try_open_operation(self, operation, pending_operation_index):
+        order = binance_client.futures_get_order(timestamp=time.time(), origClientOrderId=operation.id, symbol=self.pair)
+        if(order.status == "FILLED"):
+            operation.open_time = round(time.time())
+            operation.status = "open"
+            operation.open_price = order.price
+            self.open_operation(pending_operation_index)
 
     def try_expire_operation(self, pending_operation_index, candle):
         operation = self.pending_operations[pending_operation_index]
         pending_lifetime = (candle['close-time'] - operation.create_time) / 1000
         if(pending_lifetime > self.operation_expiry_time):
             print('La siguiente posición expiró: ', self.pending_operations[pending_operation_index].get())
+            if(self.mode == "live-trader"):
+                if(not self.__expire_operation(operation)):
+                    return False
             del self.pending_operations[pending_operation_index]
             return True
         return False
 
+    def __expire_operation(self, operation):
+        closed_order = binance_client.futures_cancel_order(timestamp=time.time(), symbol=self.pair, origClientOrderId=operation.id)
+        for tpsl_order_id in [operation.id+'-tp', operation.id+'-sl']:
+            closed_tpsl = binance_client.futures_cancel_order(timestamp=time.time(), symbol=self.pair, origClientOrderId=tpsl_order_id)
+            if(closed_tpsl):
+                print("Closed tpsl ", tpsl_order_id)
+            else:
+                print("Failed to close tpsl ", tpsl_order_id)
+        return True if closed_order.status == "CANCELED" else False
+
     def open_operation(self, pending_operation_index):
-        print('Opened position: ', self.pending_operations[pending_operation_index].get())
+        print('Opened operation: ', self.pending_operations[pending_operation_index].get())
         self.open_operations.append(self.pending_operations[pending_operation_index])
         del self.pending_operations[pending_operation_index]
+        if(self.mode == "live-trader"):
+            self.__create_tp_sl(self.open_operations[-1])
+
+    def __create_tp_sl(self, operation):
+        # TODO create take profits and stop loss orders
+        take_profit_order = {"side": "SELL", "price": operation.end_price, "positionSide": operation.type.upper, "timeInForce": "GTC", "type": "TAKE_PROFIT", "quantity": operation.quantity, "stopPrice": operation.end_price, "newClientOrderId": operation.id + '-tp' }
+        stop_loss_order = {"side": "SELL", "price": operation.end_price, "positionSide": operation.type.upper, "timeInForce": "GTC", "type": "STOP", "quantity": operation.quantity, "stopPrice": operation.end_price, "newClientOrderId": operation.id + '-sl' }
+        for i, order in enumerate([take_profit_order, stop_loss_order]):
+            created_tpsl_order = binance_client.futures_create_order(timestamp=time.time(), symbol=self.pair, **order)
+            if(created_tpsl_order):
+                print("Created tpsl order: ", created_tpsl_order)
+                return True
+            else:
+                print("Failed to create tpsl order: ", order)
+                return False
 
     def try_close_operation(self, open_operation_index, candle):
         position = self.open_operations[open_operation_index]

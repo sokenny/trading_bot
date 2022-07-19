@@ -37,6 +37,11 @@ def set_leverage():
     response = client.futures_change_leverage(**params)
     print("Leverage response: ", response)
 
+def initialize_trading_configuration():
+    set_hedgemode()
+    set_margin_type()
+    set_leverage()
+
 def get_order():
     orderId = 1804865616
     params = {"timestamp": time.time(), "orderId": orderId, "symbol": SYMBOL}
@@ -52,9 +57,7 @@ def create_multiple_orders(orders):
     response = client.futures_place_batch_order(**params)
     print("Response de create multiple orders: ", response)
 
-set_hedgemode()
-set_margin_type()
-set_leverage()
+initialize_trading_configuration()
 get_order()
 
 orders_to_open = [

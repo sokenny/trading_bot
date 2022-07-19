@@ -18,6 +18,7 @@ class Operation:
         self.outcome = None
         self.open_price = None
         self.exit_price = None
+        self.quantity = round(self.amount / self.start_price, 5)
 
     def get(self):
-        return {'status': self.status, 'start_price': self.start_price, 'end_price': self.end_price, 'stop_loss': self.stop_loss, 'amount': self.amount, 'type': self.type, 'open_price': self.open_price, 'exit_price': self.exit_price, 'weight': self.weight, 'create_time': self.create_time,  'open_time': self.open_time, 'close_time': self.close_time, 'outcome': self.outcome, 'position_id': self.position_id, 'id': self.id}
+        return {'status': self.status, 'start_price': self.start_price, 'end_price': self.end_price, 'stop_loss': self.stop_loss, 'amount': self.amount, 'quantity':self.quantity, 'type': self.type, 'open_price': self.open_price, 'exit_price': self.exit_price, 'weight': self.weight, 'create_time': self.create_time,  'open_time': self.open_time, 'close_time': self.close_time, 'outcome': self.outcome, 'position_id': self.position_id, 'id': self.id}

@@ -3,7 +3,7 @@ from classes.Bot import Bot
 
 bot = Bot(
     id="juanito",
-    mode="live",
+    mode="live-test",
     pair="ROSEUSDT",
     take_profit=3,
     stop_loss=25,
