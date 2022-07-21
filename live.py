@@ -3,7 +3,7 @@ import keys
 from trade_over_candle import trade_over_candle
 import os
 import time
-from classes import Operation
+from classes.Operation import Operation
 import copy
 
 this_path = os.path.abspath(os.path.dirname(__file__))
@@ -12,7 +12,7 @@ bot_started = int(time.time())
 
 def operate(initial_bot, trade_every, log_every):
 
-    bot_path = os.path.join(this_path, f'records/{initial_bot.id}')
+    bot_path = os.path.join(this_path, f'traders/records/{initial_bot.id}')
     create_bot_directory(initial_bot, bot_path)
 
     bot = get_bot_state(initial_bot, bot_path)
@@ -45,7 +45,7 @@ def get_bot_state(bot, bot_path):
     bot_copy.last_cci = state['last_cci']
     bot_copy.pending_operations = get_instantiated_operations(state["pending_operations"])
     bot_copy.open_operations = get_instantiated_operations(state["open_operations"])
-    bot_copy.closed_positions = state["closed_positions"]
+    bot_copy.closed_operations = state["closed_operations"]
     return bot_copy
 
 def get_instantiated_operations(operations):
@@ -56,7 +56,7 @@ def get_instantiated_operations(operations):
     return instantiated_operations
 
 def store_bot_state(bot, bot_path):
-    bot_state = {"status": bot.status, "last_cci": bot.last_cci, "closed_positions": bot.closed_positions}
+    bot_state = {"status": bot.status, "last_cci": bot.last_cci, "closed_operations": bot.closed_operations}
     bot_state["pending_operations"] = parse_operations(bot.pending_operations)
     bot_state["open_operations"] = parse_operations(bot.open_operations)
     f = open(f'{bot_path}/state.txt', "w")
@@ -82,7 +82,7 @@ def create_bot_directory(bot, bot_path):
     dir_exists = os.path.exists(bot_path)
     if not dir_exists:
         os.makedirs(bot_path)
-        initial_bot_state = {"status": bot.status, "last_cci": bot.last_cci, "pending_operations": bot.pending_operations, "open_operations": bot.open_operations, "closed_positions": bot.closed_positions}
+        initial_bot_state = {"status": bot.status, "last_cci": bot.last_cci, "pending_operations": bot.pending_operations, "open_operations": bot.open_operations, "closed_operations": bot.closed_operations}
         f = open(f'{bot_path}/state.txt', "w")
         f.write(str(initial_bot_state))
         f.close()
@@ -93,7 +93,7 @@ def log_report(bot, bot_path):
              f'\nLast CCI: {bot.last_cci}' \
              f'\n# Pending operations: {len(bot.pending_operations)}' \
              f'\n# Open operations: {len(bot.open_operations)}' \
-             f'\n# Closed operations: {str(bot.closed_positions)}\n\n'
+             f'\n# Closed operations: {str(bot.closed_operations)}\n\n'
     f = open(f'{bot_path}/log.log', "a")
     f.write(str(to_log))
     f.close()

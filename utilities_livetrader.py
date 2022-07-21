@@ -43,8 +43,9 @@ def initialize_trading_configuration():
     set_leverage()
 
 def get_order():
-    orderId = 1804865616
-    params = {"timestamp": time.time(), "orderId": orderId, "symbol": SYMBOL}
+    # orderId = 1804910069
+    clientOrderId = '1549fb9a-dcb8-4489-93da-af161000212e'
+    params = {"timestamp": time.time(), "origClientOrderId": clientOrderId, "symbol": SYMBOL}
     response = client.futures_get_order(**params)
     print("Get order response: ", response)
 
@@ -57,9 +58,18 @@ def create_multiple_orders(orders):
     response = client.futures_place_batch_order(**params)
     print("Response de create multiple orders: ", response)
 
+def get_step_size(symbol):
+    exchange_info = client.futures_exchange_info()
+    for symbol_info in exchange_info['symbols']:
+        if(symbol_info['symbol'] == symbol):
+            step_size = symbol_info['filters'][1]['stepSize']
+            print("Step size: ", step_size)
+            print(symbol_info)
+
 initialize_trading_configuration()
 get_order()
-
+get_step_size("ROSEUSDT")
+# print(client.futures_cancel_order(timestamp=time.time(), symbol="ROSEUSDT", origClientOrderId='1549fb9a-dcb8-4489-93da-af161000212e'))
 orders_to_open = [
     {"symbol": SYMBOL, "side": "BUY", "positionSide": POSITION_SIDE, "timeInForce": "GTC", "type": "LIMIT", "quantity": QUANTITY, "price": PRICE, "newClientOrderId": str(uuid.uuid4()) },
     {"symbol": SYMBOL, "side": "BUY", "positionSide": POSITION_SIDE, "timeInForce": "GTC", "type": "LIMIT", "quantity": QUANTITY, "price": PRICE_2, "newClientOrderId": str(uuid.uuid4()) },

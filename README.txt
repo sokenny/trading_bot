@@ -54,17 +54,3 @@ CCI_PEAK = 200 # Valor en el que se activa la señal del CCI
 PERIOD = ["20 Jun, 2022", "21 Jun, 2022"] # Periodo de velas a backtestear si se quiere seleccionar un rango especifico, se establecen 2 parametros, ej: "15 Mar, 2022", "6 Apr, 2022". Si es un periodo relativo al dia presente, mandamos un solo item, ej: "1 day ago UTC"
 POSITION_EXPIRY_TIME = 3600 # Tiempo en segundos, que deben transcurrir para abortar una posicion "pending" si no logró abrirse
 START_GAP_PERCENTAGE = 0 # Porcentage base desde el cual se promedia a la baja o a la alta (ej: si esta en 2, un precio de 5 dolares va a empezar a abrir sus posiciones en 5.2)
-
-def futures_place_batch_order(self, **params):
-        """Send in new orders.
-
-        https://binance-docs.github.io/apidocs/futures/en/#place-multiple-orders-trade
-
-        To avoid modifying the existing signature generation and parameter order logic,
-        the url encoding is done on the special query param, batchOrders, in the early stage.
-
-        """
-        query_string = urlencode(params)
-        query_string = query_string.replace('%27', '%22')
-        params['batchOrders'] = query_string[12:]
-        return self._request_futures_api('post', 'batchOrders', True, data=params)
