@@ -3,7 +3,7 @@ import config
 import backtester
 import sys
 import io
-from classes.Bot import Bot
+from Bot import Bot
 
 def backtest(configs):
 

@@ -1,5 +1,5 @@
 from live import operate
-from classes.Bot import Bot
+from Bot import Bot
 
 bot = Bot(
     id="juanito-trader",

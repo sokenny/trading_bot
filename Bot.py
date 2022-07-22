@@ -6,7 +6,7 @@ from binance.client import Client
 import ta
 import time
 import config
-from classes.Operation import Operation
+from Operation import Operation
 
 
 binance_client = Client(api_key=keys.Akey, api_secret=keys.Skey)
@@ -151,7 +151,8 @@ class Bot:
 
     def __get_order_to_create(self, operation):
         trimmed_quantity = self.__get_trimmed_quantity(operation.quantity)
-        order = {"symbol": self.pair, "side": "BUY", "positionSide": operation.type.upper(), "timeInForce": "GTC", "type": "LIMIT", "quantity": trimmed_quantity, "price": operation.start_price, "newClientOrderId": operation.id }
+        side = "BUY" if operation.type == "long" else "SELL"
+        order = {"symbol": self.pair, "side": side, "positionSide": operation.type.upper(), "timeInForce": "GTC", "type": "LIMIT", "quantity": trimmed_quantity, "price": operation.start_price, "newClientOrderId": operation.id }
         return order
 
     def __get_trimmed_quantity(self, quantity):

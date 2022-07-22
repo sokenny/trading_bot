@@ -3,7 +3,7 @@ import keys
 from trade_over_candle import trade_over_candle
 import os
 import time
-from classes.Operation import Operation
+from Operation import Operation
 import copy
 
 this_path = os.path.abspath(os.path.dirname(__file__))
@@ -12,7 +12,7 @@ bot_started = int(time.time())
 
 def operate(initial_bot, trade_every, log_every):
 
-    bot_path = os.path.join(this_path, f'traders/records/{initial_bot.id}')
+    bot_path = os.path.join(this_path, f'records/{initial_bot.id}')
     create_bot_directory(initial_bot, bot_path)
 
     bot = get_bot_state(initial_bot, bot_path)
