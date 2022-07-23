@@ -8,7 +8,7 @@ bot = Bot(
     take_profit=1,
     stop_loss=25,
     position_structure=[{'weight': .5}, {'weight': .5}],
-    cci_peak=10,
+    cci_peak=50,
     operation_expiry_time=2500,
     start_gap_percentage=0,
     max_weight_allocation=1,
@@ -17,4 +17,4 @@ bot = Bot(
     kline_to_use_in_prod=5
 )
 
-operate(bot, trade_every=30, log_every=60)
+operate(bot, trade_every=30, log_every=1800)
