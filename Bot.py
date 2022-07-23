@@ -211,15 +211,11 @@ class Bot:
                     print("Successfully closed tpsl: ", closed_tpsl)
             except Exception as e:
                 errors +=1
-                print("Failed to close tpss: ", e)
+                print("Failed to close tpsl: ", e)
         return errors == 0
 
     def __get_tpsl_id(self, operation, tpsl_type):
         return f'{operation.id[:30]}-{tpsl_type}'
-
-    # TODO DELETE
-    def probando(self):
-       self.__create_tp_sl(self.open_operations[0])
 
     def open_operation(self, pending_operation_index):
         print('Opened operation: ', self.pending_operations[pending_operation_index].get())
@@ -229,17 +225,17 @@ class Bot:
             self.__create_tp_sl(self.open_operations[-1])
 
     def __create_tp_sl(self, operation):
-        take_profit_order = {"side": "SELL", "price": operation.end_price, "positionSide": operation.type.upper(), "timeInForce": "GTC", "type": "TAKE_PROFIT", "quantity": self.__get_trimmed_quantity(operation.quantity), "stopPrice": operation.end_price, "newClientOrderId": self.__get_tpsl_id(operation, 'tp') }
-        stop_loss_order = {"side": "SELL", "price": operation.end_price, "positionSide": operation.type.upper(), "timeInForce": "GTC", "type": "STOP", "quantity": self.__get_trimmed_quantity(operation.quantity), "stopPrice": operation.end_price, "newClientOrderId": self.__get_tpsl_id(operation, 'sl') }
+        side = "SELL" if operation.type == "long" else "BUY"
+        take_profit_order = {"side": side, "price": operation.end_price, "positionSide": operation.type.upper(), "timeInForce": "GTC", "type": "TAKE_PROFIT", "quantity": self.__get_trimmed_quantity(operation.quantity), "stopPrice": operation.end_price, "newClientOrderId": self.__get_tpsl_id(operation, 'tp') }
+        stop_loss_order = {"side": side, "price": operation.stop_loss, "positionSide": operation.type.upper(), "timeInForce": "GTC", "type": "STOP", "quantity": self.__get_trimmed_quantity(operation.quantity), "stopPrice": operation.stop_loss, "newClientOrderId": self.__get_tpsl_id(operation, 'sl') }
+        tpsls_created = 0
         for i, order in enumerate([take_profit_order, stop_loss_order]):
             print("tpsl to create: ", order)
             created_tpsl_order = binance_client.futures_create_order(timestamp=time.time(), symbol=self.pair, **order)
             if(created_tpsl_order):
                 print("Created tpsl order: ", created_tpsl_order)
-                return True
-            else:
-                print("Failed to create tpsl order: ", order)
-                return False
+                tpsls_created += 1
+        return tpsls_created == 2
 
     def try_close_operation(self, open_operation_index, candle):
         operation = self.open_operations[open_operation_index]

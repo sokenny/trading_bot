@@ -43,8 +43,8 @@ def initialize_trading_configuration():
     set_leverage()
 
 def get_order():
-    # orderId = 1804910069
-    clientOrderId = '1549fb9a-dcb8-4489-93da-af161000212e'
+    # orderId = 1828399913
+    clientOrderId = '822de9a5-350a-440c-afac-a0a514-sl'
     params = {"timestamp": time.time(), "origClientOrderId": clientOrderId, "symbol": SYMBOL}
     response = client.futures_get_order(**params)
     print("Get order response: ", response)
@@ -66,7 +66,7 @@ def get_step_size(symbol):
             print("Step size: ", step_size)
             print(symbol_info)
 
-initialize_trading_configuration()
+# initialize_trading_configuration()
 get_order()
 get_step_size("ROSEUSDT")
 # print(client.futures_cancel_order(timestamp=time.time(), symbol="ROSEUSDT", origClientOrderId='1549fb9a-dcb8-4489-93da-af161000212e'))
